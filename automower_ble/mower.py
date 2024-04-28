@@ -371,7 +371,8 @@ class Mower:
         `connect()` before the Python script exits
         """
 
-        await self.client.stop_notify(self.read_char)
+        if hasattr(self, 'read_char'):
+            await self.client.stop_notify(self.read_char)
         await self.queue.put(None)
 
         logger.info("disconnecting...")
@@ -442,6 +443,12 @@ class Mower:
     async def send_operator_pin_request(self, pin):
         request = self.request.generate_request_pin(pin)
         response = await self._request_response(request)
+        
+    async def get_task(self, taskid: int):
+        request = self.request.generate_get_task(taskid)
+        response = await self._request_response(request)
+        return self.response.decode_get_task_response(response)
+        
 
 
 async def main(mower):

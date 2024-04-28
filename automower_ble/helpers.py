@@ -268,3 +268,25 @@ def crc(data: bytearray, offset: int, length: int) -> int:
         offset = offset + 1
 
     return b & 0xFF
+
+
+class TaskInformation(object):
+    def __init__(self,
+                 next_start_time,
+                 duration_in_seconds,
+                 on_monday,
+                 on_tuesday,
+                 on_wednesday,
+                 on_thursday,
+                 on_friday,
+                 on_saturday,
+                 on_sunday):
+        self.next_start_time = next_start_time
+        self.duration_in_seconds = duration_in_seconds
+        self.on_monday = on_monday
+        self.on_tuesday = on_tuesday
+        self.on_wednesday = on_wednesday
+        self.on_thursday = on_thursday
+        self.on_friday = on_friday
+        self.on_saturday = on_saturday
+        self.on_sunday = on_sunday

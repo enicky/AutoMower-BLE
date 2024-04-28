@@ -34,7 +34,8 @@ Requests = dict(
         ("get_serial_number", ((4698, 10), (0x00, 0x00, 0x00))),
         ("get_restriction_reason", ((4658, 0), (0x00, 0x00, 0x00))),
         ("get_number_of_tasks", ((4690, 4), (0x00, 0x00, 0x00))),
-        ("set_mode_request", ((4586, 0), (0x00, 0x00, 0x00, 0x00)))
+        ("set_mode_request", ((4586, 0), (0x00, 0x00, 0x00, 0x00))),
+        ("get_task", ((4690, 5), (0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)))
     ]
 )
 
@@ -370,6 +371,12 @@ class MowerRequest:
         data = self.__generate_standard_request("get_number_of_tasks")
         return self.__finalise_standard_request(data)
     
+    def generate_get_task(self, taskid:int=4) -> bytearray:
+        data = self.__generate_standard_request("get_task")
+        #int.from_bytes(data[19:23], byteorder='little', signed=False) => long
+        data[16] = taskid
+        return self.__finalise_standard_request(data)
+    
 
 
 class TestStringMethods(unittest.TestCase):
@@ -608,6 +615,7 @@ class TestStringMethods(unittest.TestCase):
             binascii.hexlify(request.generate_keepalive_request()),
             b"02fd10005314a513016900af421202000000d903",
         )
+        
     def test_generate_getStartupSequenceRequiredRequest(self):
         request = MowerRequest(0x13a51453)
         self.assertEqual(
@@ -648,6 +656,14 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(
             binascii.hexlify(request.generate_get_number_of_tasks()),
             b"02fd10005314a513016900af5212040000008b03",
+        )
+    
+    def generate_get_task(self):
+        print('start generate get task')
+        request = MowerRequest(0x13a51453)
+        self.assertEqual(
+            binascii.hexlify(request.generate_get_task()),
+            b"02fd14005314a513019d00af52120500040000000000d203",
         )
         
 if __name__ == "__main__":

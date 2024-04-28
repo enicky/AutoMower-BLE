@@ -8,7 +8,7 @@ import unittest
 import binascii
 
 from .models import MowerModels
-from .helpers import crc
+from .helpers import crc, TaskInformation
 
 
 class MowerResponse:
@@ -387,6 +387,45 @@ class MowerResponse:
             return False
         
         return True
+    
+    def decode_get_task_response(self, data : bytearray) -> TaskInformation:
+        
+        self.decode_response_template(data)
+        from datetime import datetime, timezone
+        
+        if data[12] != 0x52 and data[13] != 0x12:
+            return False
+        
+        if data[14] != 0x05:
+            return False
+        
+        if data[17] != 0x13:
+            return False
+        if data[18] != 0x00:
+            return False
+        
+        unixtimestamp = int.from_bytes(data[19:23], byteorder='little', signed=False)
+        dt_start_time = datetime.fromtimestamp(unixtimestamp, tz=timezone.utc) # The mower does not have a timezone and therefore utc must be used for parsing
+        
+        duration = int.from_bytes(data[23:27], byteorder='little', signed=False)
+        
+        use_monday = data[27] == 0x01
+        use_tuesday = data[28] == 0x01
+        use_wednesday = data[29] == 0x01
+        use_thursday = data[30] == 0x01
+        use_friday = data[31] == 0x01
+        use_saturday = data[32] == 0x01
+        use_sunday = data[33] == 0x01
+        
+        return TaskInformation(next_start_time=dt_start_time, duration_in_seconds=duration,
+                               on_monday=use_monday,
+                               on_tuesday=use_tuesday,
+                               on_wednesday=use_wednesday,
+                               on_thursday=use_thursday,
+                               on_friday=use_friday,
+                               on_saturday=use_saturday,
+                               on_sunday=use_sunday)
+        
 
 
 class TestStringMethods(unittest.TestCase):
@@ -466,6 +505,35 @@ class TestStringMethods(unittest.TestCase):
             ),
             "goingOut",
         )
+        
+    def test_decode_get_number_of_tasks_response(self):
+        response= MowerResponse(0x13a51453)
+        self.assertEqual(
+            response.decode_get_number_of_tasks_response(
+                bytearray.fromhex("02fd150025be246a012e01af52120400000400010000004f03")
+            ),
+            1,
+        )
+        
+    def test_decode_get_task_response(self):
+        response= MowerResponse(0x13a51453)
+        decoded = response.decode_get_task_response(
+                bytearray.fromhex("02fd240025be246a010701af5212050000130000e100003831000001000101000101000000003003")
+            )
+        self.assertEqual(
+            decoded.duration_in_seconds,
+            12600,
+        )
+        self.assertTrue(decoded.on_monday)
+        self.assertFalse(decoded.on_tuesday)
+        self.assertTrue(decoded.on_wednesday)
+        self.assertTrue(decoded.on_thursday)
+        self.assertTrue(decoded.on_monday)
+        self.assertFalse(decoded.on_friday)
+        self.assertTrue(decoded.on_saturday)
+        self.assertTrue(decoded.on_sunday)
+        
+        
 
 
 if __name__ == "__main__":
