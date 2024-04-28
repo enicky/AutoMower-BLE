@@ -8,7 +8,7 @@
 
 import argparse
 import asyncio
-import logging
+import logging, coloredlogs
 from datetime import datetime, timezone
 
 import binascii
@@ -20,6 +20,7 @@ from bleak import BleakClient, BleakScanner
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
 logger = logging.getLogger(__name__)
+#coloredlogs.install(level='INFO', logger=logger)
 
 MTU_SIZE = 20
 
