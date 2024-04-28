@@ -25,9 +25,10 @@ MTU_SIZE = 20
 
 
 class Mower:
-    def __init__(self, channel_id: int, address):
+    def __init__(self, channel_id: int, address, pin=None):
         self.channel_id = channel_id
         self.address = address
+        self.pin = pin
 
         self.request = MowerRequest(channel_id)
         self.response = MowerResponse(channel_id)
@@ -200,6 +201,14 @@ class Mower:
 
         ### TODO: Check response
 
+        if self.pin is not None:
+            request = self.request.generate_request_pin(self.pin)
+            response = await self._request_response(request)
+            if response == None:
+                return False
+
+            ### TODO: Check response
+
         return True
 
     def is_connected(self) -> bool:
@@ -291,13 +300,13 @@ class Mower:
 
         return self.response.decode_response_battery_level(response)
 
-    async def mower_state(self):
+    async def mower_state(self, is_husqvarna:bool=True):
         request = self.request.generate_request_mower_state()
         response = await self._request_response(request)
         if response == None:
             return False
 
-        return self.response.decode_response_mower_state(response)
+        return self.response.decode_response_mower_state(response, is_husqvarna)
 
     async def mower_next_start_time(self):
         request = self.request.generate_request_next_start_time()
@@ -380,8 +389,12 @@ async def main(mower):
 
     await mower.connect(device)
 
-    model = await mower.get_model()
-    print("Connected to: " + model)
+    try: 
+        model = await mower.get_model()
+    except KeyError:
+        model = "Untested"
+
+    print("Connected to: " + model.name)
 
     charging = await mower.is_charging()
     if charging:
@@ -392,7 +405,7 @@ async def main(mower):
     battery_level = await mower.battery_level()
     print("Battery is: " + str(battery_level) + "%")
 
-    state = await mower.mower_state()
+    state = await mower.mower_state(model.is_husqvarna)
     print("Mower state: " + state)
 
     activity = await mower.mower_activity()
@@ -434,9 +447,16 @@ if __name__ == "__main__":
         help="the Bluetooth address of the Automower device to connect to",
     )
 
+    parser.add_argument(
+        "--pin",
+        metavar="<code>",
+        type=int,
+        default=None,
+        help="Send PIN to authenticate. This feature is experimental and might not work.",
+    )
     args = parser.parse_args()
 
-    mower = Mower(1197489078, args.address)
+    mower = Mower(1197489078, args.address, args.pin)
 
     log_level = logging.INFO
     logging.basicConfig(
